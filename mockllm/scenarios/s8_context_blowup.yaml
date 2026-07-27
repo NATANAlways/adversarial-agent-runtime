@@ -1,0 +1,15 @@
+id: S8
+name: context_blowup
+description: >
+  Every turn keeps calling a tool (so the loop never naturally ends via
+  end_turn) while the response text grows turn over turn. Because the full
+  message history is resent on every call, cumulative context crosses the
+  8,000-token ceiling within a handful of turns unless the agent compacts.
+  This is the scenario that exercises R3 end-to-end, including the
+  turn-3-fact-recalled-at-turn-40 requirement if the harness drives it that
+  long.
+params:
+  tool_name: run_python
+  base_tokens: 150
+  growth_per_turn: 90
+  filler_sentence: "The situation is more complex than it first appears and involves several interacting factors worth naming explicitly."

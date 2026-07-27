@@ -1,0 +1,11 @@
+id: S6
+name: retry_after_then_overloaded
+description: >
+  Attempt 1 at turn 1 returns HTTP 429 with a Retry-After header. Attempt 2
+  returns HTTP 529 (overloaded). Attempt 3+ returns a normal 200. The agent
+  must honor Retry-After (or at least back off), and must retry through both
+  error classes to eventually succeed.
+params:
+  retry_after_seconds: 1
+  tool_name: read_file
+  tool_input: { path: "notes.txt" }

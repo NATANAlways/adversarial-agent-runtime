@@ -1,0 +1,13 @@
+id: S10
+name: parallel_fail_and_hang
+description: >
+  A single turn requests two tool calls in parallel: one crafted to hang
+  (an infinite loop passed to run_python, which only the agent's own
+  wall-clock timeout can end) and one crafted to fail immediately (read_file
+  on a path that does not exist). The mock never executes tools itself --
+  it only ever emits the requests -- so this scenario is really testing the
+  agent's tool-execution layer (timeout enforcement, isolated error
+  handling per call) rather than anything mockllm does at the HTTP level.
+params:
+  hang_call: { name: run_python, input: { code: "while True:\n    pass" } }
+  fail_call: { name: read_file, input: { path: "does_not_exist_xyz.txt" } }

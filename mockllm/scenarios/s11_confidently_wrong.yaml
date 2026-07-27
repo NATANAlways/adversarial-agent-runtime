@@ -1,0 +1,13 @@
+id: S11
+name: confidently_wrong
+description: >
+  Turn 1 asks to write a file to a path that, if the agent's workspace
+  confinement is implemented correctly, will fail (path traversal outside
+  workspace/). Turn 2 -- no matter what the real tool_result said, error or
+  not -- the model claims success ("I've successfully written the report").
+  The agent must keep its own record of the true outcome and not let the
+  model's narration overwrite what actually happened; this is graded on the
+  event log / trace, not on the chat transcript.
+params:
+  bad_path: "../outside_workspace.txt"
+  claim_text: "Done! I've successfully written the report."

@@ -1,0 +1,9 @@
+id: S1
+name: happy_path
+description: >
+  Single tool call, then a clean final answer. The baseline case every other
+  scenario is a variation of.
+params:
+  tool_name: read_file
+  tool_input: { path: "notes.txt" }
+  intro_text: "I'll check that file for you."

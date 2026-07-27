@@ -1,0 +1,15 @@
+id: S12
+name: partial_interrupted_turn
+description: >
+  A turn declares three parallel tool calls. On the first attempt, the
+  connection is cut immediately after the first tool_use block's JSON is
+  complete but before the second or third block (and before stop_reason)
+  are ever written -- an interrupted turn, not a clean error. The agent
+  must not treat this as "one tool call, complete" and act on it; it has to
+  recognize the read as incomplete and retry the turn. Attempt 2+ returns
+  the full, valid three-call turn.
+params:
+  calls:
+    - { name: read_file, input: { path: "notes.txt" } }
+    - { name: run_python, input: { code: "print('ok')" } }
+    - { name: http_get, input: { url: "http://localhost:9/status" } }

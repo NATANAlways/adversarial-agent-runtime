@@ -1,0 +1,16 @@
+id: S5
+name: connection_reset
+description: >
+  On the first attempt at turn 1, the server declares a Content-Length for
+  the full response, writes only a prefix of it, then shuts the socket down
+  -- a mid-response connection reset. The cut offset is pseudo-random but
+  seeded from the request signature, so re-running the same conversation
+  reproduces the same offset (important for replay). Any retry of the same
+  logical call (attempt 2+) gets a full, valid response. The agent must
+  detect the truncated read (not silently accept a partial/invalid body)
+  and retry.
+params:
+  tool_name: read_file
+  tool_input: { path: "notes.txt" }
+  min_cut_fraction: 0.1
+  max_cut_fraction: 0.9

@@ -1,0 +1,11 @@
+id: S9
+name: duplicate_tool_ids
+description: >
+  Turn 1 issues a tool_use with id "toolu_dup0001" for one tool. Turn 2
+  issues a *different* tool call reusing the exact same id. A client that
+  keys any state (result cache, pending-call map) purely by tool_use id
+  without also scoping by turn will corrupt or misattribute results.
+params:
+  fixed_id: "toolu_dup0001"
+  first_call: { name: read_file, input: { path: "a.txt" } }
+  second_call: { name: write_file, input: { path: "b.txt", content: "hello" } }

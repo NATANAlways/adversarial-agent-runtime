@@ -1,0 +1,10 @@
+id: S3
+name: bad_tool_calls
+description: >
+  Turn 1 calls a tool that does not exist in the tool list at all. Turn 2
+  calls a real tool with a wrong-typed argument (int where a path string is
+  expected). The agent must surface both as tool_result errors without
+  crashing, and without ever actually dispatching the nonexistent tool.
+params:
+  nonexistent_tool: { name: delete_database, input: { confirm: true } }
+  wrong_typed_tool: { name: read_file, input: { path: 12345 } }

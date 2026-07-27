@@ -1,0 +1,15 @@
+id: S2
+name: malformed_tool_arguments
+description: >
+  The `input` field of a tool_use block is, contract-breakingly, a raw
+  string containing broken JSON instead of a parsed object -- trailing
+  comma, then mid-object truncation, then an unescaped control character --
+  before finally recovering with a valid call. Real Claude never emits this
+  (the API guarantees valid structured input); this mock does, on purpose,
+  to force the client to validate defensively rather than trust the shape
+  of the response. See server.py:handle_s2 for the exact mechanics.
+params:
+  tool_name: write_file
+  # turn 1 -> trailing comma, turn 2 -> truncated mid-object,
+  # turn 3 -> unescaped newline inside a string, turn 4+ -> valid input
+  valid_input: { path: "out.txt", content: "line1\nline2" }

@@ -1,0 +1,11 @@
+id: S4
+name: infinite_loop
+description: >
+  Calls the same tool with the same arguments forever. stop_reason is
+  always tool_use; end_turn never happens. The mock will never stop this on
+  its own -- the agent's step ceiling / no-progress detection (R5) is the
+  only thing that can end the run, and it must do so in bounded time with a
+  legible trace.
+params:
+  tool_name: run_python
+  tool_input: { code: "print('looping')" }
