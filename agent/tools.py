@@ -1,4 +1,12 @@
 from pathlib import Path
+from urllib.parse import urlparse
+import urllib.request
+
+# Allowed websites
+ALLOWED_HOSTS = {
+    "example.com",
+    "api.github.com",
+}
 
 WORKSPACE = Path("workspace").resolve()
 
@@ -34,3 +42,19 @@ def write_file(path:str , content: str) -> str:
     target.write_text(content)
     return f"Ok: wrote {len(content)} characters to '{path}'"
 
+
+def http_get(url:str) -> str:
+    """
+    allow to fetch url if it was in the allowed lists
+    """
+
+    parsed = urlparse(url)
+    host = parsed.hostname
+
+    if host not in ALLOWED_HOSTS:
+        return f"REFUSED: host '{host}' is not on the aloow-list. Allowed: {sorted(ALLOWED_HOSTS)}"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return response.read().decode()[:1000]
+    except Exception as e:
+        return f"ERROR fetching '{url}': {e}"
