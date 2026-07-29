@@ -1,4 +1,6 @@
 from agent.client import ask_model
+from agent.tools import run_tool
+
 
 # safety limit
 MAX_STEPS = 10
@@ -48,16 +50,20 @@ def run_agent(task, scenario="S1"):
         print(f"Arguments: {tool_input}")
         
         # fake tool to pretent
-        fake_result = f"(pretend result of {name})"
+        result = run_tool(name, tool_input)
+        print(f"   Result: {result}")
         
         conversation.append({
             "role": "user",
             "content": [{
                 "type": "tool_result",
                 "tool_use_id": tool_block.get("id"),
-                "content": fake_result,
+                "content": result,
                 }]
         })
+
+
+        
 
 if __name__ == "__main__":
     run_agent("Read the file notes.txt", scenario="S1")

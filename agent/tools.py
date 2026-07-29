@@ -1,6 +1,7 @@
 from pathlib import Path
 from urllib.parse import urlparse
 import urllib.request
+from agent.email_tool import send_email
 
 # Allowed websites
 ALLOWED_HOSTS = {
@@ -58,3 +59,26 @@ def http_get(url:str) -> str:
             return response.read().decode()[:1000]
     except Exception as e:
         return f"ERROR fetching '{url}': {e}"
+    
+def run_tool(name: str, tool_input: dict) -> str:
+    """
+    calling right fucntions the model asks or the tool not available telling the tools are not here
+    """
+    try:
+        if name == "read_file":
+            return read_file(tool_input["path"])
+        elif name == "write_file":
+            return write_file(tool_input["path"], tool_input["content"])
+        elif name == "http_get":
+            return http_get(tool_input["url"])
+        elif name == "send_email":
+            return send_email(
+                tool_input["to"],
+                tool_input["subject"],
+                tool_input["body"]
+            )
+        else:
+            return f"ERROR: unknown tool '{name}'"
+    except (KeyError, TypeError) as e:
+        # S2/S3 defense: if arguments were wrong (missing/wrong type)
+        return f"ERROR: bad arguments for tool '{name}': {e}"
