@@ -10,6 +10,10 @@ def run_agent(task, scenario="S1"):
     conversation = [{"role": "user", "content":task}]
 
     step = 0
+    # last tool + arguments
+    last_signature = None
+    # same signature come again and again
+    repeat_count = 0
 
     while True:
         # stop: step limit
@@ -48,6 +52,20 @@ def run_agent(task, scenario="S1"):
         tool_input = tool_block.get("input", {})
         print(f"Model asked tool: {name}")
         print(f"Arguments: {tool_input}")
+
+        # -- No progress detection
+        signature = f"{name} | {tool_input}"
+
+        if signature == last_signature:
+            repeat_count += 1
+        else:
+            repeat_count = 0
+        last_signature = signature
+
+        if repeat_count >= 2:
+            print(f"\n🛑 STOPPED: no progress — same action repeated {repeat_count + 1} times.")
+            print(f"   Stuck on: {name} with {tool_input}")
+            return
         
         # fake tool to pretent
         result = run_tool(name, tool_input)
@@ -66,4 +84,6 @@ def run_agent(task, scenario="S1"):
         
 
 if __name__ == "__main__":
-    run_agent("Read the file notes.txt", scenario="S1")
+    import sys
+    scenario = sys.argv[1] if len(sys.argv) > 1 else "S1"
+    run_agent(f"Task for scenario {scenario}", scenario=scenario)

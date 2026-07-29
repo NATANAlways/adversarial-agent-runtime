@@ -2,6 +2,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 import urllib.request
 from agent.email_tool import send_email
+import subprocess
+import sys
 
 # Allowed websites
 ALLOWED_HOSTS = {
@@ -60,6 +62,28 @@ def http_get(url:str) -> str:
     except Exception as e:
         return f"ERROR fetching '{url}': {e}"
     
+
+def run_python(code: str) -> str:
+    """
+        running the code given by the model in a subprocess
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        output = result.stdout
+        if result.stderr:
+            output += f"\n[stderr]: {result.stderr}"
+        return output.strip() or "(no output)"
+    
+    except subprocess.TimeoutExpired:
+        return "ERROR: code timeout (exceed 5 seconds)"
+    except Exception as e:
+        return f"ERROR running python: {e}"
+    
 def run_tool(name: str, tool_input: dict) -> str:
     """
     calling right fucntions the model asks or the tool not available telling the tools are not here
@@ -77,6 +101,8 @@ def run_tool(name: str, tool_input: dict) -> str:
                 tool_input["subject"],
                 tool_input["body"]
             )
+        elif name == "run_python":
+            return run_python(tool_input["code"])
         else:
             return f"ERROR: unknown tool '{name}'"
     except (KeyError, TypeError) as e:

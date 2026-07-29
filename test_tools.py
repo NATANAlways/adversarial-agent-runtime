@@ -1,5 +1,6 @@
 from agent.tools import read_file, write_file
 from agent.tools import http_get
+from agent.tools import run_python
 
 
 print("Test 1 (read good file):")
@@ -24,3 +25,9 @@ print(http_get("https://evil-hacker-site.com/steal"))
 # 5. host does it there it must worked
 print("\nTest 5 (allowed host):")
 print(http_get("https://example.com"))
+
+print("\nTest 6 (normal code):")
+print(run_python("print(2 + 2)"))
+
+print("\nTest 7 (infinite loop):")
+print(run_python("while True: pass"))
