@@ -6,6 +6,7 @@ setup:
 	python3 -m venv .venv
 	$(VENV)/pip install -q --upgrade pip
 	$(VENV)/pip install -q -r mockllm/requirements.txt
+	$(VENV)/pip install -q requests
 
 # Start the mock model server on localhost:8000.
 run-mock:
@@ -15,13 +16,13 @@ run-mock:
 test-mock:
 	$(VENV)/python -m unittest discover -s mockllm/tests -v
 
-# TODO(Part A): once agent/ and evals/ exist, `test` and `eval` should run
-# the agent's own test suite and eval harness (see the take-home spec's
-# `make test` / `make eval` targets). For now there is no agent yet --
-# only the mock server it will run against -- so both targets just run
-# mockllm's smoke tests and say so explicitly rather than pretending.
+# Agent's own tests: tools (path confinement, allow-lists, run_python),
+# email idempotency, and crash-recovery exactly-once.
 test: test-mock
-	@echo "NOTE: agent/ does not exist yet -- only mockllm's own tests ran."
+	$(VENV)/python test_tools.py
+	$(VENV)/python test_email.py
+	$(VENV)/python test_crash.py
 
+# Agent eval suite: 14 cases (5 adversarial, 2 known-gap).
 eval:
-	@echo "NOTE: evals/ does not exist yet -- there is no agent to evaluate."
+	$(VENV)/python -m evals.run_evals
