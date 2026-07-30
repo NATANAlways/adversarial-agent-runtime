@@ -105,6 +105,9 @@ def run_tool(name: str, tool_input: dict) -> str:
             return run_python(tool_input["code"])
         else:
             return f"ERROR: unknown tool '{name}'"
+    except (ValueError) as e:
+        # structural refusals (e.g. path traversal) -> return as error, don't crash
+        return f"ERROR: {e}"
     except (KeyError, TypeError) as e:
         # S2/S3 defense: if arguments were wrong (missing/wrong type)
         return f"ERROR: bad arguments for tool '{name}': {e}"
