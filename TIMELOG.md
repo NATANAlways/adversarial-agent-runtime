@@ -16,3 +16,6 @@
 | 2026-07-30 IST | Crash test (R2, grading #1): test_crash.py simulates crash+resume, asserts send_email exactly once (1 SENT + 2 SKIPPED). Real kill -9 harness deferred | ~15 min |
 | 2026-07-30 IST | Eval suite (R7): 14 cases (5 adversarial, 2 known-gap). Debugged 2 false-negative checks (string-match brittleness: 'OK' vs 'Ok', 'timed out' vs 'timeout') | ~20 min |
 | 2026-07-30 IST | DECISIONS.md draft (R8): architecture, structural-safety rationale, 3 unsafe places, compaction plan, deferred items | ~15 min |
+| 2026-07-30 IST | Makefile: wired agent tests + evals into make test/eval targets (were placeholders); setup installs requests. Fixed test_email to use approved recipients after R4 allow-list | ~15 min |
+| 2026-07-30 IST | README.md: setup/run/test instructions, architecture, what-works, and honest list of gaps (S3/S5/S8-S12, real kill -9, replay, compaction) | ~10 min |
+| 2026-07-30 IST | S6 retry/backoff (R1): client.py retries on 429/529 honoring Retry-After, capped at MAX_RETRIES. Fixed silent failure (429 body mistaken for 'done'). Verified 429->529->200. Updated evals (S6 passes; added S5/S12 gap; removed duplicates) | ~20 min |
