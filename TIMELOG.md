@@ -11,3 +11,8 @@
 | 2026-07-29 IST | No-progress detection (R5): track tool+args signature across steps, halt on repeat before MAX_STEPS. Tested on S4 (halts in ~3 steps) | ~15 min |
 | 2026-07-29 IST | run_python tool: model code in isolated subprocess with 5s timeout; wired into dispatcher. Learned subprocess basics. Tested normal code + infinite-loop timeout | ~15 min |
 | 2026-07-29 IST | Injection resistance (R4): recipient allow-list on send_email. Reproduced S7 exfil (SENT -> failure), added APPROVED_RECIPIENTS boundary, re-tested (REFUSED). Structural, not pattern-matching | ~15 min |
+| 2026-07-30 IST | Event log (R2/R6): append-only SQLite log, commit-per-event, get_completed_tools() + run_exists(). Learned SQLite persistence via standalone test first | ~20 min |
+| 2026-07-30 IST | Resume (R2): logged every step in loop; resume_agent() rebuilds conversation from completed tools, continues same run_id. Tested resume on prior run | ~25 min |
+| 2026-07-30 IST | Crash test (R2, grading #1): test_crash.py simulates crash+resume, asserts send_email exactly once (1 SENT + 2 SKIPPED). Real kill -9 harness deferred | ~15 min |
+| 2026-07-30 IST | Eval suite (R7): 14 cases (5 adversarial, 2 known-gap). Debugged 2 false-negative checks (string-match brittleness: 'OK' vs 'Ok', 'timed out' vs 'timeout') | ~20 min |
+| 2026-07-30 IST | DECISIONS.md draft (R8): architecture, structural-safety rationale, 3 unsafe places, compaction plan, deferred items | ~15 min |
