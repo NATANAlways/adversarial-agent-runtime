@@ -2,10 +2,35 @@ from agent.client import ask_model
 from agent.tools import run_tool
 from agent.event_log import log_event, get_completed_tools, run_exsists
 import uuid
-
+from mockllm.tokenizer import count_tokens
+import json
 
 # safety limit
-MAX_STEPS = 10
+MAX_STEPS = 20
+
+TOKEN_BUDGET = 8000
+
+COMPACT_THRESHOLD = 6000 
+
+def conversation_tokens(conversation):
+    """cmeasuring the tokens"""
+    text = json.dumps(conversation)
+    return count_tokens(text)
+
+def compact_converstaion(conversation):
+    """if the Converstaion go big make the old middle messages as a summary"""
+    if len(conversation) <= 6:
+        return conversation
+    task_msg = conversation[0]
+    recent = conversation[-4:]
+    dropped = len(conversation) - 5
+
+    summary = {
+        "role": "user",
+        "content": f"[Compacted {dropped} earlier messages to stay within token budget. "
+                   f"Original task and recent context preserved.]"
+    }
+    return [task_msg, summary] + recent
 
 def run_agent(task, scenario="S1", run_id=None, conversation=None):
     if run_id is None:
@@ -22,6 +47,8 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
     last_signature = None
     # same signature come again and again
     repeat_count = 0
+    # failed tools
+    failed_tools = []
 
     while True:
         # stop: step limit
@@ -31,7 +58,19 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
             return
         
         step += 1
-        print(f"\n -- step {step} --")
+        tokens = conversation_tokens(conversation)
+        print(f"\n -- step {step} (tokens: {tokens}/{TOKEN_BUDGET}) --")
+
+        if tokens > COMPACT_THRESHOLD:
+            conversation = compact_converstaion(conversation)
+            tokens = conversation_tokens(conversation)
+            print(f"   🗜️  Compacted -> {tokens} tokens")
+            
+
+        if tokens > TOKEN_BUDGET:
+            print(f"\n🛑 STOPPED: token budget exceeded ({tokens} > {TOKEN_BUDGET}).")
+            log_event(run_id, "run_end", {"status": "budget_exceeded", "tokens": tokens})
+            return
 
         # ask to the server
         reply = ask_model(conversation, scenario)
@@ -50,10 +89,14 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
         #stop case 
         if tool_block is None:
             print("\n Done: model fininshed...")
-            log_event(run_id, "run_end", {"status": "done"})
+            log_event(run_id, "run_end", {"status": "done", "failed_tools": len(failed_tools)})
             for block in content:
                 if block.get("type") == "text":
                     print("Model told: ", block.get("text"))
+            if failed_tools:
+                print(f"\n⚠️  WARNING: model claims success, but {len(failed_tools)} tool(s) actually FAILED:")
+                for f in failed_tools:
+                    print(f"     - {f['tool']}: {f['result']}")
             return
         
         # model ask a tool
@@ -82,6 +125,10 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
         # fake tool to pretent
         result = run_tool(name, tool_input)
         print(f"   Result: {result}")
+
+        # whther the tools failed
+        if str(result).startswith("ERROR") or "REFUSED" in str(result):
+            failed_tools.append({"tool":name, "result":str(result)[:100]})
 
         # too result log
         log_event(run_id, "tool_result", {"tool": name, "result": str(result)[:200]})
