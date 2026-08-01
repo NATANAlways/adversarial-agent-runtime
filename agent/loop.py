@@ -65,7 +65,7 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
             conversation = compact_converstaion(conversation)
             tokens = conversation_tokens(conversation)
             print(f"   🗜️  Compacted -> {tokens} tokens")
-            
+
 
         if tokens > TOKEN_BUDGET:
             print(f"\n🛑 STOPPED: token budget exceeded ({tokens} > {TOKEN_BUDGET}).")
@@ -172,7 +172,41 @@ def resume_agent(run_id, scenario="S1"):
 
     run_agent(task=None, scenario=scenario, run_id=run_id, conversation=conversation)
 
+def replay_run(run_id):
+    """
+    replay using old run event logs
+    no server, no tools run again, only showing records
+    """
+    from agent.event_log import get_events
 
+    events = get_events(run_id)
+    if not events:
+        print(f"❌ Run '{run_id}' not found (no events).")
+        return
+    
+    print(f"🎬 Replaying run: {run_id} ({len(events)} events)")
+    print("="*50)
+
+    for event in events:
+        etype = event["event_type"]
+        data = event["data"]
+        seq = event["seq"]
+
+        if etype == "run_start":
+            print(f"[{seq}] 🚀 START: task={data.get('task')} scenario={data.get('scenario')}")
+        elif etype == "tool_call":
+            print(f"[{seq}] 🔧 TOOL CALL: {data.get('tool')} args={data.get('args')}")
+        elif etype == "tool_result":
+            print(f"[{seq}] 📤 RESULT: {data.get('result')}")
+        elif etype == "run_end":
+            print(f"[{seq}] ✅ END: status={data.get('status')}")
+        elif etype == "run_resumed":
+            print(f"[{seq}] 🔄 RESUMED: completed_tools={data.get('completed_tools')}")
+        else:
+            print(f"[{seq}] {etype}: {data}")
+
+    print("=" * 50)
+    print("🎬 Replay complete (no server, no tools executed).")
         
 
 if __name__ == "__main__":
@@ -183,6 +217,9 @@ if __name__ == "__main__":
         run_id = sys.argv[2]
         scenario = sys.argv[3] if len(sys.argv) > 3 else "S1"
         resume_agent(run_id, scenario=scenario)
+    elif command == "replay":
+        run_id = sys.argv[2]
+        replay_run(run_id)
     else:
         scenario = sys.argv[1] if len(sys.argv) > 1 else "S1"
         run_agent(f"Task for scenario {scenario}", scenario=scenario)
