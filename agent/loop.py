@@ -4,6 +4,9 @@ from agent.event_log import log_event, get_completed_tools, run_exsists
 import uuid
 from mockllm.tokenizer import count_tokens
 import json
+import re
+
+
 
 # safety limit
 MAX_STEPS = 20
@@ -12,8 +15,29 @@ TOKEN_BUDGET = 8000
 
 COMPACT_THRESHOLD = 6000 
 
-COST_PER_CALL = 0.10
+COST_PER_CALL = 0.01
 COST_BUDGET = 0.20 
+
+def parse_tool_input(raw):
+    """
+    If the tool input is in dict format then allow, if it string or malformed json 
+    repair it S2
+    """
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            repaired = re.sub(r",\s*([}\]])", r"\1", raw)
+            try:
+                return json.loads(repaired)
+            except json.JSONDecodeError:
+                return {}
+    return {}
+
+            
+
 
 def conversation_tokens(conversation):
     """cmeasuring the tokens"""
@@ -98,15 +122,11 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
         # take content from server's reply
         content = reply.get("content", [])
 
-        # search whther tool_use block there inn the content
-        tool_block = None
-        for block in content:
-            if block.get("type") == "tool_use":
-                tool_block = block
-                break
+        # collecting all the tool_use blocks (parallel calls)
+        tool_blocks = [b for b in content if b.get("type") == "tool_use"]
         
-        #stop case 
-        if tool_block is None:
+        #stop case : no tool the model fininshes
+        if not tool_blocks:
             print("\n Done: model fininshed...")
             log_event(run_id, "run_end", {"status": "done", "failed_tools": len(failed_tools)})
             for block in content:
@@ -117,49 +137,45 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
                 for f in failed_tools:
                     print(f"     - {f['tool']}: {f['result']}")
             return
-        
-        # model ask a tool
-        name = tool_block.get("name")
-        tool_input = tool_block.get("input", {})
-        print(f"Model asked tool: {name}")
-        print(f"Arguments: {tool_input}")
-
-        # -- No progress detection
-        signature = f"{name} | {tool_input}"
-
+            
+        # no-progress:
+        first = tool_blocks[0]
+        signature = f"{first.get('name')} | {first.get('input', {})}"
         if signature == last_signature:
             repeat_count += 1
         else:
             repeat_count = 0
         last_signature = signature
-
         if repeat_count >= 2:
             print(f"\n🛑 STOPPED: no progress — same action repeated {repeat_count + 1} times.")
-            print(f"   Stuck on: {name} with {tool_input}")
             return
-        
-        # to log the tool call before
-        log_event(run_id, "tool_call", {"tool": name, "args": tool_input})
+            
+            # making all tool use in process
+        tool_results = []
+        for tb in tool_blocks:
+            name = tb.get("name")
+            tool_input = parse_tool_input(tb.get("input", {}))
+            print(f"Model asked tool: {name}")
+            print(f"Arguments: {tool_input}")
 
-        # fake tool to pretent
-        result = run_tool(name, tool_input)
-        print(f"   Result: {result}")
+            log_event(run_id, "tool_call", {"tool": name, "args": tool_input})
+            result = run_tool(name, tool_input)
+            print(f" Result: {result}")
+            log_event(run_id, "tool_result", {"tool": name, "result": str(result)[:200]})
 
-        # whther the tools failed
-        if str(result).startswith("ERROR") or "REFUSED" in str(result):
-            failed_tools.append({"tool":name, "result":str(result)[:100]})
+            # ground truth: does it fail ? - s11
+            result_upper = str(result).upper()
+            if str(result_upper).startswith("ERROR") or "REFUSED" in str(result_upper):
+                failed_tools.append({"tool": name, "result": str(result_upper)[:100]})
 
-        # too result log
-        log_event(run_id, "tool_result", {"tool": name, "result": str(result)[:200]})
-        
-        conversation.append({
-            "role": "user",
-            "content": [{
+            tool_results.append({
                 "type": "tool_result",
-                "tool_use_id": tool_block.get("id"),
+                "tool_use_id": tb.get("id"),
                 "content": result,
-                }]
-        })
+            })
+                
+                 # all results taken in one user message 
+            conversation.append({"role": "user", "content": tool_results})  
 
 def resume_agent(run_id, scenario="S1"):
     """Continue crash of a run"""
