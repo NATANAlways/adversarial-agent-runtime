@@ -12,6 +12,9 @@ TOKEN_BUDGET = 8000
 
 COMPACT_THRESHOLD = 6000 
 
+COST_PER_CALL = 0.10
+COST_BUDGET = 0.20 
+
 def conversation_tokens(conversation):
     """cmeasuring the tokens"""
     text = json.dumps(conversation)
@@ -49,6 +52,8 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
     repeat_count = 0
     # failed tools
     failed_tools = []
+    # budget
+    total_cost = 0.0
 
     while True:
         # stop: step limit
@@ -58,8 +63,16 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
             return
         
         step += 1
+        total_cost += COST_PER_CALL
+
         tokens = conversation_tokens(conversation)
-        print(f"\n -- step {step} (tokens: {tokens}/{TOKEN_BUDGET}) --")
+        print(f"\n -- step {step} (tokens: {tokens}/{TOKEN_BUDGET}, cost: ${total_cost:.2f}/${COST_BUDGET:.2f}) --")
+
+        # --- R5: cost budget ---
+        if total_cost > COST_BUDGET:
+            print(f"\n🛑 STOPPED: cost budget exceeded (${total_cost:.2f} > ${COST_BUDGET:.2f}).")
+            log_event(run_id, "run_end", {"status": "cost_exceeded", "cost": total_cost})
+            return
 
         if tokens > COMPACT_THRESHOLD:
             conversation = compact_converstaion(conversation)
@@ -73,7 +86,13 @@ def run_agent(task, scenario="S1", run_id=None, conversation=None):
             return
 
         # ask to the server
-        reply = ask_model(conversation, scenario)
+        try:
+            reply = ask_model(conversation, scenario)
+        except Exception as e:
+            print(f"\n🛑 STOPPED: could not reach the model server ({e}).")
+            log_event(run_id, "run_end", {"status": "server_unreachable", "error": str(e)[:100]})
+            return
+        
         conversation.append(reply)
 
         # take content from server's reply
