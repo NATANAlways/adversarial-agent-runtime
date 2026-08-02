@@ -26,19 +26,29 @@ def ask_model(conversation, scenario="S1"):
     for attempt in range(MAX_RETRIES):
         try:
             response = requests.post(SERVER_URL, json=body, headers=headers)
+
+            if response.status_code in (429, 529):
+                wait = int(response.headers.get("Retry-After", 1))
+                print(f"   ⏳ Got {response.status_code}, retrying in {wait}s "
+                    f"(attempt {attempt + 1}/{MAX_RETRIES})...")
+                time.sleep(wait)
+                continue
+            # if status code 200 or other
+            return response.json()
+        
         except requests.exceptions.ConnectionError as e:
             print(f"   ⏳ Connection broken ({attempt + 1}/{MAX_RETRIES}), retrying...")
             time.sleep(1)
             continue
 
-        if response.status_code in (429, 529):
-            wait = int(response.headers.get("Retry-After", 1))
-            print(f"   ⏳ Got {response.status_code}, retrying in {wait}s "
-                  f"(attempt {attempt + 1}/{MAX_RETRIES})...")
-            time.sleep(wait)
+        except Exception as e:
+            # for incomplete read
+            print(f"   ⏳ Read failed ({attempt + 1}/{MAX_RETRIES}), retrying...")
+            time.sleep(1)
+            time.sleep(1)
             continue
-        # if status code 200 or other
-        return response.json()
+
+        
     
     # in case all try got failed
     return {"error": f"max retries ({MAX_RETRIES}) exceeded"}
