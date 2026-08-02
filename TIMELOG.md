@@ -3,8 +3,8 @@
 | Date | Task | Duration | Notes |
 |---|---|---|---|
 | 2026-07-27, ~22:10-22:30 IST | Scaffolded mockllm/ with heavy AI assistance: server.py, tokenizer.py, 12 scenarios, README, smoke tests. NOTE: AI-generated; still working through understanding it line-by-line before relying on it. | ~20 min |
-| 2026-07-29 IST | Built agent/client.py — HTTP client to mockllm (POST /v1/messages, X-Mock-Scenario header, model/max_tokens/messages body) | ~20 min | Used requests (simple, understood) rather than http.client for now |
-| 2026-07-29 IST | Built agent/loop.py — core ask->act->report loop, MAX_STEPS ceiling, tool_use detection, feeds tool_result back into conversation. Tools stubbed for now | ~20 min | Verified against S1 happy path end-to-end |
+| 2026-07-29 IST | Built agent/client.py — HTTP client to mockllm (POST /v1/messages, X-Mock-Scenario header, model/max_tokens/messages body) | ~15 min | Used requests (simple, understood) rather than http.client for now |
+| 2026-07-29 IST | Built agent/loop.py — core ask->act->report loop, MAX_STEPS ceiling, tool_use detection, feeds tool_result back into conversation. Tools stubbed for now | ~15 min | Verified against S1 happy path end-to-end |
 | 2026-07-29 IST | Built agent/tools.py — read_file + write_file confined to workspace/ with _safe_path() (.resolve() + is_relative_to path-traversal defense). Verified reads, writes, and ../ escape refusal | ~10|
 | 2026-07-29 IST | Built agent/email_tool.py — send_email with SHA256 idempotency key + SQLite dedup (SENT once, subsequent identical sends SKIPPED). Learned SQLite basics (connect/commit/persistence) first | ~10 min |
 | 2026-07-29 IST | Wired real tools into loop via run_tool dispatcher (read/write/http_get/send_email); unknown-tool + bad-arg defenses (S2/S3). Verified end-to-end on S1 with real file content | ~10 min |
@@ -27,3 +27,5 @@
 | 2026-07-30 IST | S10 (parallel fail+hang): loop now processes ALL tool_use blocks, not just the first; run_python timeout absorbs the hang. Fixed no-progress regression (kept it outside the per-tool loop) + case-insensitive failed-tool detection | ~15 min |
 | 2026-07-30 IST | S2 (malformed JSON): parse_tool_input parses stringified tool input and repairs trailing commas via regex; unrecoverable JSON falls back to {}. Verified repair + run recovers and completes | ~10 min |
 | 2026-07-30 IST | Docs sync: updated DECISIONS (R3/R5/R6 implemented, scenario notes, honest gaps + S5/S12 deferral), evals, and README to match code | ~ min 5 |
+| 2026-07-30 IST | S5 + S12 (connection reset / interrupted turn): found the reset surfaces as IncompleteRead. Moved response.json() inside the retry try/except in client.py; retry on ConnectionError + ChunkedEncodingError. No http.client rewrite needed. Verified S5 retries and continues; S12 handles reset + parallel tools + injection defense together. All 12 scenarios now handled | ~15 min |
+| 2026-07-30 IST | R6 JSONL export: added export_jsonl() to event_log.py + an `export` command. Reads the existing SQLite events and writes one JSON object per line. Closes the "SQLite not JSONL" gap | ~10 min |

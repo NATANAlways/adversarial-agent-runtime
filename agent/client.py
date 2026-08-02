@@ -7,6 +7,8 @@ SERVER_URL = "http://localhost:8000/v1/messages"
 # how many times to retry 
 MAX_RETRIES = 5
 
+REQUEST_TIMEOUT = 10
+
 def ask_model(conversation, scenario="S1"):
     """
     conversation is taken and sent to the server,
@@ -25,7 +27,7 @@ def ask_model(conversation, scenario="S1"):
 
     for attempt in range(MAX_RETRIES):
         try:
-            response = requests.post(SERVER_URL, json=body, headers=headers)
+            response = requests.post(SERVER_URL, json=body, headers=headers, timeout=REQUEST_TIMEOUT)
 
             if response.status_code in (429, 529):
                 wait = int(response.headers.get("Retry-After", 1))
@@ -34,7 +36,12 @@ def ask_model(conversation, scenario="S1"):
                 time.sleep(wait)
                 continue
             # if status code 200 or other
-            return response.json()
+            if response.status_code == 200:
+                return response.json()
+            return {
+                "error": f"HTTP {response.status_code}",
+                "details": response.text
+            }
         
         except requests.exceptions.ConnectionError as e:
             print(f"   ⏳ Connection broken ({attempt + 1}/{MAX_RETRIES}), retrying...")
@@ -44,7 +51,6 @@ def ask_model(conversation, scenario="S1"):
         except Exception as e:
             # for incomplete read
             print(f"   ⏳ Read failed ({attempt + 1}/{MAX_RETRIES}), retrying...")
-            time.sleep(1)
             time.sleep(1)
             continue
 
