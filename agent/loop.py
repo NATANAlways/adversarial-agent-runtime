@@ -1,6 +1,6 @@
 from agent.client import ask_model
 from agent.tools import run_tool
-from agent.event_log import log_event, get_completed_tools, run_exsists
+from agent.event_log import log_event, get_completed_tools, run_exsists, export_jsonl
 import uuid
 from mockllm.tokenizer import count_tokens
 import json
@@ -255,6 +255,10 @@ if __name__ == "__main__":
     elif command == "replay":
         run_id = sys.argv[2]
         replay_run(run_id)
+    elif command == "export":
+        run_id = sys.argv[2]
+        path = export_jsonl(run_id)
+        print(f"📄 Exported JSONL trace to {path}")
     else:
         scenario = sys.argv[1] if len(sys.argv) > 1 else "S1"
         run_agent(f"Task for scenario {scenario}", scenario=scenario)

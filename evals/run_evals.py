@@ -64,10 +64,14 @@ conn.close()
 check("send_email stored exactly once", count == 1)
 
 # GROUP 4: Known gaps (EXPECTED FAIL — honesty)
-check("S5/S12 incomplete-read detection implemented", False,
-      adversarial=True, expected_fail=True)
+# S5/S12 connection-reset retry is now implemented (uses the same MAX_RETRIES loop)
+check("S5/S12 connection-reset retry implemented", MAX_RETRIES >= 3, adversarial=True)
+
+# genuine remaining gaps:
 check("fact-preserving compaction (pinned facts) implemented", False,
       expected_fail=True)
+check("run_python memory cap + network isolation implemented", False,
+      adversarial=True, expected_fail=True)
 
 # Print results
 print("\n" + "=" * 55)

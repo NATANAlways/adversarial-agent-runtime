@@ -33,6 +33,7 @@ def log_event(run_id: str, event_type: str, data: dict):
     conn.commit()
     conn.close()
 
+# the events get append in the list events in dic format from the database
 def get_events(run_id: str) -> list:
     """ for a run logging all the evnets in sequence"""
     conn = _get_db()
@@ -53,7 +54,7 @@ def get_events(run_id: str) -> list:
         })
     return events
 
-
+# the tools that get completed their actions 
 def get_completed_tools(run_id: str) -> list:
     """
         taking tool_call + tool_result that fininshed in a run
@@ -79,3 +80,22 @@ def get_completed_tools(run_id: str) -> list:
 def run_exsists(run_id: str) -> bool:
     """to check whther this run_id have events"""
     return len(get_events(run_id)) > 0
+
+
+def export_jsonl(run_id: str, output_path: str = None) -> str:
+    """Export a run's events as JSONL — one JSON object per line.
+
+    The event log already holds everything in SQLite; this just re-serializes
+    the existing rows into the JSONL trace format R6 asks for. No new data.
+    """
+    events = get_events(run_id)
+    if output_path is None:
+        traces_dir = Path("traces")
+        traces_dir.mkdir(exist_ok=True)
+        output_path = traces_dir / f"trace_{run_id}.jsonl"
+
+    with open(output_path, "w") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+
+    return output_path
