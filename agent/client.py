@@ -24,7 +24,12 @@ def ask_model(conversation, scenario="S1"):
     headers = {"X-Mock-Scenario": scenario}
 
     for attempt in range(MAX_RETRIES):
-        response = requests.post(SERVER_URL, json=body, headers=headers)
+        try:
+            response = requests.post(SERVER_URL, json=body, headers=headers)
+        except requests.exceptions.ConnectionError as e:
+            print(f"   ⏳ Connection broken ({attempt + 1}/{MAX_RETRIES}), retrying...")
+            time.sleep(1)
+            continue
 
         if response.status_code in (429, 529):
             wait = int(response.headers.get("Retry-After", 1))
